@@ -1,4 +1,11 @@
+# intro -------------------------------------------------------------
+# This script creates an R Shiny dashboard. The dashboard only shows one table
+# The table contains books that are on my Goodreads to-read list and are also currently
+# available at my favorite library.
+
+# setup -------------------------------------------------------------------
 library(shiny)
+library(shinydashboard)
 library(DT)
 
 library(httr)
@@ -7,7 +14,10 @@ library(dplyr)
 
 options(stringsAsFactors = FALSE)
 
+# functions ---------------------------------------------------------------
 get.data.from.goodreads <- function(){
+  # Get all books that are on my to-read list and keep relevant information in a dataframe.
+  # The to-read list is obtained through Goodreads API
   url <- "https://www.goodreads.com/review/list?"
   param <- list(v=2,id=id,key=key,shelf='to-read')
   
@@ -24,8 +34,11 @@ get.data.from.goodreads <- function(){
   return(df)
 }
 
-lookup.in.bib <- function(){
-  df <- get.data.from.goodreads()
+lookup.in.bib <- function(df){
+  # the dataframe parameter expects a df with book info
+  # currently, this df is the same as the get.data.from.goodreads() output
+  # through web scraping the availability at my library of every book in the dataframe gets checked
+  # return original dataframe + availability column
   df$aanwezig <- ''
   
   for (i in 1:nrow(df)){
@@ -60,6 +73,7 @@ lookup.in.bib <- function(){
   return(df.to.show)
 }
 
+# UI ----------------------------------------------------------------------
 ui <- dashboardPage(
   dashboardHeader(title = "Wat is er in de bib?"),
   dashboardSidebar(disable = TRUE),
@@ -70,11 +84,15 @@ ui <- dashboardPage(
   )
 )
 
+# server ------------------------------------------------------------------
 server <- function(input,output){
   output$table <- renderDataTable({
-    df <- lookup.in.bib()
+    df <- get.data.from.goodreads()
+    df <- lookup.in.bib(df)
     DT::datatable(df, rownames = FALSE, options = list(dom='t'))
   })
 }
 
+
+# app ---------------------------------------------------------------------
 shinyApp(ui = ui, server = server)
